@@ -42,6 +42,13 @@ class TypeProcessor(BuiltinProcessor):
 
         print(f"{content}: not found")
 
+class PwdProcessor(BuiltinProcessor):
+    def builtin_command(self):
+        return "pwd"
+
+    def process(self, command):
+        print(os.getcwd())
+
 class ExitProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "exit"
@@ -60,9 +67,10 @@ class ExternalCommandProcessor(Processor):
         os.system(command)
 
 
-shell_builtins = ["echo", "type", "exit"]
+shell_builtins = ["echo", "type", "exit", "pwd"]
 builtin_processor_mapper = {
     "echo": EchoProcessor(),
     "type": TypeProcessor(),
-    "exit": ExitProcessor()
+    "exit": ExitProcessor(),
+    "pwd": PwdProcessor(),
 }
