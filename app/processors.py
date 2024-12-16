@@ -2,44 +2,47 @@ import sys
 import abc
 import os
 
+paths = os.environ.get("PATH").split(":")
 
 class Processor(abc.ABC):
     @abc.abstractmethod
     def process(self, command):
         pass
 
+class BuiltinProcessor(Processor):
+    @abc.abstractmethod
+    def process(self, command):
+        pass
+
     @abc.abstractmethod
     def builtin_command(self):
         pass
 
-class EchoProcessor(Processor):
+class EchoProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "echo"
 
     def process(self, command):
         print(command[5:])
 
-class TypeProcessor(Processor):
+class TypeProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "type"
 
     def process(self, command):
-        path_list = os.environ.get("PATH")
-        paths = path_list.split(":")
+        content = command[5:]
 
-
-        if command[5:] in shell_builtins:
+        if content in shell_builtins:
             print(command[5:] + " is a shell builtin")
             return
 
-        for path in paths:
-            if os.path.isfile(path + "/" + command[5:]):
-                print(command[5:] + " is " + path + "/" + command[5:])
-                return
+        if is_external_command(content):
+            print(f"{content} is {is_external_command(content)}")
+            return
 
-        print(f"{command[5:]}: not found")
+        print(f"{content}: not found")
 
-class ExitProcessor(Processor):
+class ExitProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "exit"
 
@@ -47,8 +50,18 @@ class ExitProcessor(Processor):
         sys.exit(0)
 
 
+def is_external_command(command):
+    for path in paths:
+        if os.path.isfile(f"{path}/{command}"):
+            return f"{path}/{command}"
+
+class ExternalCommandProcessor(Processor):
+    def process(self, command):
+        os.system(command)
+
+
 shell_builtins = ["echo", "type", "exit"]
-processor_mapper = {
+builtin_processor_mapper = {
     "echo": EchoProcessor(),
     "type": TypeProcessor(),
     "exit": ExitProcessor()

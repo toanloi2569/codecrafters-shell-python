@@ -1,6 +1,7 @@
+import os
 import sys
 
-from app.processors import processor_mapper
+from app.processors import builtin_processor_mapper, ExternalCommandProcessor, is_external_command
 
 
 def main():
@@ -10,10 +11,13 @@ def main():
         command = input()
 
         parts = command.split(" ")
-        builtin_command = parts[0]
+        cmd = parts[0]
 
-        if builtin_command in processor_mapper:
-            processor = processor_mapper[builtin_command]
+        if cmd in builtin_processor_mapper:
+            processor = builtin_processor_mapper[cmd]
+            processor.process(command)
+        elif is_external_command(cmd):
+            processor = ExternalCommandProcessor()
             processor.process(command)
         else:
             print(f"{command}: command not found")
