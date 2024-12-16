@@ -3,6 +3,7 @@ import abc
 import os
 
 paths = os.environ.get("PATH").split(":")
+home = os.environ.get("HOME")
 
 class Processor(abc.ABC):
     @abc.abstractmethod
@@ -54,7 +55,9 @@ class CdProcessor(BuiltinProcessor):
         return "cd"
 
     def process(self, command):
-        if os.path.isdir(command[3:]):
+        if command[3:] == "~":
+            os.chdir(home)
+        elif os.path.isdir(command[3:]):
             os.chdir(command[3:])
         else:
             print(f"cd: {command[3:]}: No such file or directory")
