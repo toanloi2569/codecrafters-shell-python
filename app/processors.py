@@ -49,6 +49,16 @@ class PwdProcessor(BuiltinProcessor):
     def process(self, command):
         print(os.getcwd())
 
+class CdProcessor(BuiltinProcessor):
+    def builtin_command(self):
+        return "cd"
+
+    def process(self, command):
+        if os.path.isdir(command[3:]):
+            os.chdir(command[3:])
+        else:
+            print(f"cd: {command[3:]}: No such file or directory")
+
 class ExitProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "exit"
@@ -67,10 +77,11 @@ class ExternalCommandProcessor(Processor):
         os.system(command)
 
 
-shell_builtins = ["echo", "type", "exit", "pwd"]
+shell_builtins = ["echo", "type", "exit", "pwd", "cd"]
 builtin_processor_mapper = {
     "echo": EchoProcessor(),
     "type": TypeProcessor(),
     "exit": ExitProcessor(),
     "pwd": PwdProcessor(),
+    "cd": CdProcessor()
 }
