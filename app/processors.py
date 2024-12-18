@@ -1,6 +1,9 @@
+import re
 import sys
 import abc
 import os
+import typing
+from typing import Text, List
 
 paths = os.environ.get("PATH").split(":")
 home = os.environ.get("HOME")
@@ -24,7 +27,11 @@ class EchoProcessor(BuiltinProcessor):
         return "echo"
 
     def process(self, command):
-        print(command[5:])
+        content = command[5:]
+        if '\'' in content:
+            print(content[1:-1])
+        else:
+            print(re.sub(r'\s+', ' ', content))
 
 class TypeProcessor(BuiltinProcessor):
     def builtin_command(self):
@@ -62,6 +69,41 @@ class CdProcessor(BuiltinProcessor):
         else:
             print(f"cd: {command[3:]}: No such file or directory")
 
+class CatProcessor(BuiltinProcessor):
+    def builtin_command(self):
+        return "cat"
+
+    def process(self, command):
+        content = command[4:]
+
+        files = []
+        
+        parts = re.split(r' \'|\' ', content)
+        for part in parts:
+            if part.startswith('\'')  and part.endswith('\''):
+                # part = part.replace(' ', '\\ ')
+                files.append(part[1:-1])
+            elif part.startswith('\'') and not part.endswith('\''):
+                # part = part.replace(' ', '\\ ')
+                # files.append(f'{part}\'')
+                files.append(part[1:])
+            elif part.endswith('\'') and not part.startswith('\''):
+                # part = part.replace(' ', '\\ ')
+                # files.append(f'\'{part}')
+                files.append(part[:-1])
+            else:
+                p_ = part.split(' ')
+                p_ = [_.strip() for _ in p_ if len(_.strip()) > 0 ]
+                files.extend(p_)
+
+        out = ''
+        for file_name in files:
+            with open(file_name, 'r') as f:
+                out += f.read()
+                # print(out)
+        
+        print(out.strip())
+
 class ExitProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "exit"
@@ -86,5 +128,6 @@ builtin_processor_mapper = {
     "type": TypeProcessor(),
     "exit": ExitProcessor(),
     "pwd": PwdProcessor(),
-    "cd": CdProcessor()
+    "cd": CdProcessor(),
+    "cat": CatProcessor()
 }
