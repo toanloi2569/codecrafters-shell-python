@@ -8,6 +8,72 @@ from typing import Text, List
 paths = os.environ.get("PATH").split(":")
 home = os.environ.get("HOME")
 
+
+def split_quoting(text: str):
+    # Completed text list
+    done: list = []
+
+    # Processing str
+    doing: str = ''
+
+    # Quote is being processed
+    quote: str = ''
+
+    # Is backslash being used?
+    backslash: bool = False
+
+    for c in text:
+        if c == ' ' and not doing:
+            continue
+        if c == ' ' and doing and not quote:
+            done.append(doing)
+            doing = ''
+            continue
+        if c == ' ' and doing and quote:
+            doing += ' '
+            continue
+
+        if c == '\'' and quote == '\'':
+            doing += '\''
+            quote = ''
+            done.append(doing)
+            doing = ''
+            continue
+        if c == '\'' and quote == '\"':
+            doing += '\''
+            continue
+        if c == '\'' and not quote and not doing:
+            doing += '\''
+            quote = '\''
+            continue
+
+        if c == '\"' and quote == '\"' and not backslash:
+            doing += '\"'
+            quote = ''
+            done.append(doing)
+            doing = ''
+            continue
+        if c == '\"' and quote == '\"' and backslash:
+            doing += '\"'
+            continue
+        if c == '\"' and not quote and not doing:
+            doing += '\"'
+            quote = '\"'
+            continue
+
+        if c != ' ' and c != '\'' and c != '\"':
+            doing += c
+            continue
+
+        raise ValueError
+
+    if doing:
+        if ((doing.startswith('\'') and not doing.endswith('\''))
+                or (doing.startswith('\"') and not doing.endswith('\"'))):
+            raise ValueError
+        done.append(doing)
+    return done
+
 class Processor(abc.ABC):
     @abc.abstractmethod
     def process(self, command):
@@ -28,10 +94,11 @@ class EchoProcessor(BuiltinProcessor):
 
     def process(self, command):
         content = command[5:]
-        if '\'' in content:
-            print(content[1:-1])
-        else:
-            print(re.sub(r'\s+', ' ', content))
+        text = split_quoting(content)
+        text = [p[1:-1] if p.startswith('\'') or p.startswith('\"') else p for p in text ]
+        text = ' '.join(text)
+        print(text)
+
 
 class TypeProcessor(BuiltinProcessor):
     def builtin_command(self):
@@ -76,32 +143,18 @@ class CatProcessor(BuiltinProcessor):
     def process(self, command):
         content = command[4:]
 
-        files = []
-        
-        parts = re.split(r' \'|\' ', content)
-        for part in parts:
-            if part.startswith('\'')  and part.endswith('\''):
-                # part = part.replace(' ', '\\ ')
-                files.append(part[1:-1])
-            elif part.startswith('\'') and not part.endswith('\''):
-                # part = part.replace(' ', '\\ ')
-                # files.append(f'{part}\'')
-                files.append(part[1:])
-            elif part.endswith('\'') and not part.startswith('\''):
-                # part = part.replace(' ', '\\ ')
-                # files.append(f'\'{part}')
-                files.append(part[:-1])
-            else:
-                p_ = part.split(' ')
-                p_ = [_.strip() for _ in p_ if len(_.strip()) > 0 ]
-                files.extend(p_)
+        files = split_quoting(content)
 
         out = ''
         for file_name in files:
+            if file_name.startswith('\"'):
+                file_name = file_name[1:-1]
+            if file_name.startswith('\''):
+                file_name = file_name[1:-1]
+
             with open(file_name, 'r') as f:
                 out += f.read()
-                # print(out)
-        
+
         print(out.strip())
 
 class ExitProcessor(BuiltinProcessor):
