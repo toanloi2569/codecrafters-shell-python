@@ -31,8 +31,10 @@ def main():
         else:
             result, err = process_command(command)
             if err:
+                err = err.strip()
                 sys.stderr.write(err + '\n')
-            else:
+            elif result:
+                result = result.strip()
                 sys.stdout.write(result + '\n')
 
 

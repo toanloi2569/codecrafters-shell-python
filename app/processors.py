@@ -120,7 +120,7 @@ class TypeProcessor(BuiltinProcessor):
         content = command[5:]
 
         if content in shell_builtins:
-            return command[5:] + " is a shell builtin"
+            return command[5:] + " is a shell builtin", ''
 
         if is_external_command(content):
             return f"{content} is {is_external_command(content)}", ''
@@ -141,8 +141,10 @@ class CdProcessor(BuiltinProcessor):
     def process(self, command):
         if command[3:] == "~":
             os.chdir(home)
+            return '', ''
         elif os.path.isdir(command[3:]):
             os.chdir(command[3:])
+            return '', ''
         else:
             return f"cd: {command[3:]}: No such file or directory", ''
 
