@@ -22,7 +22,11 @@ def split_quoting(text: str):
     # Is backslash being used?
     backslash: bool = False
 
-    for c in text:
+    for i, c in enumerate(text):
+        if c == ' ' and backslash:
+            doing += ' '
+            backslash = False
+            continue
         if c == ' ' and not doing:
             continue
         if c == ' ' and doing and not quote:
@@ -33,8 +37,11 @@ def split_quoting(text: str):
             doing += ' '
             continue
 
-        if c == '\'' and quote == '\'':
+        if c == '\'' and backslash:
             doing += '\''
+            backslash = False
+            continue
+        if c == '\'' and quote == '\'':
             quote = ''
             done.append(doing)
             doing = ''
@@ -43,12 +50,14 @@ def split_quoting(text: str):
             doing += '\''
             continue
         if c == '\'' and not quote and not doing:
-            doing += '\''
             quote = '\''
             continue
 
-        if c == '\"' and quote == '\"' and not backslash:
+        if c == '\"' and backslash:
             doing += '\"'
+            backslash = False
+            continue
+        if c == '\"' and quote == '\"' and not backslash:
             quote = ''
             done.append(doing)
             doing = ''
@@ -57,8 +66,21 @@ def split_quoting(text: str):
             doing += '\"'
             continue
         if c == '\"' and not quote and not doing:
-            doing += '\"'
             quote = '\"'
+            continue
+
+        if c == '\\' and quote == '\"' and  i+1 < len(text) and text[i+1] in ['\\', '\"', '$']:
+            backslash = True
+            continue
+        if c == '\\' and backslash:
+            doing += '\\'
+            backslash = False
+            continue
+        if c == '\\' and not quote:
+            backslash = True
+            continue
+        if c == '\\' and quote:
+            doing += '\\'
             continue
 
         if c != ' ' and c != '\'' and c != '\"':
@@ -95,7 +117,7 @@ class EchoProcessor(BuiltinProcessor):
     def process(self, command):
         content = command[5:]
         text = split_quoting(content)
-        text = [p[1:-1] if p.startswith('\'') or p.startswith('\"') else p for p in text ]
+        # text = [p[1:-1] if p.startswith('\'') or p.startswith('\"') else p for p in text ]
         text = ' '.join(text)
         print(text)
 
@@ -147,10 +169,10 @@ class CatProcessor(BuiltinProcessor):
 
         out = ''
         for file_name in files:
-            if file_name.startswith('\"'):
-                file_name = file_name[1:-1]
-            if file_name.startswith('\''):
-                file_name = file_name[1:-1]
+            # if file_name.startswith('\"'):
+            #     file_name = file_name[1:-1]
+            # if file_name.startswith('\''):
+            #     file_name = file_name[1:-1]
 
             with open(file_name, 'r') as f:
                 out += f.read()
