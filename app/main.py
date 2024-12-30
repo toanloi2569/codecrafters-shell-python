@@ -7,8 +7,6 @@ from app.processors import split_text, process_command, find_redirect_idx, write
 def main():
     # Wait for user input
     while True:
-        # sys.stdout.write("$ ")
-        # command = input()
         command = input("$ ")
 
         parts = split_text(command)
@@ -27,6 +25,14 @@ def main():
                 if result:
                     sys.stdout.write(result + '\n')
                 write_file(err, file_name)
+            elif opr == '>>' or opr == '1>>':
+                if err:
+                    sys.stderr.write(err + '\n')
+                write_file('\n' + result, file_name, mode='a')
+            elif opr == '2>>':
+                if result:
+                    sys.stdout.write(result + '\n')
+                write_file('\n' + err, file_name, mode='a')
         else:
             result, err = process_command(command)
             if err:
