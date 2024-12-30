@@ -229,7 +229,7 @@ def write_file(content, file_path, mode='w'):
             f.write(content)
     else:
         with open(file_path, 'x') as f:
-            f.write(content)
+            f.write(content.strip())
 
 
 def process_command(command):

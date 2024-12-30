@@ -8,8 +8,10 @@ def main():
     # Wait for user input
     while True:
         command = input("$ ")
-
         parts = split_text(command)
+
+        # Xử lý trường hợp có redirect output
+        # Gồm các trường hợp: >, 1>, 2>, >>, 1>>, 2>>
         redirect_idx, opr = find_redirect_idx(parts)
         if redirect_idx != -1:
             command = ''.join(parts[:redirect_idx])
@@ -17,6 +19,8 @@ def main():
             file_name = file_name.strip()
 
             result, err = process_command(command)
+            result = result.strip()
+            err = err.strip()
             if opr == '>' or opr == '1>':
                 if err:
                     sys.stderr.write(err + '\n')
