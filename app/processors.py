@@ -65,6 +65,9 @@ def split_quoting(text: str):
         if c == '\"' and quote == '\"' and backslash:
             doing += '\"'
             continue
+        if c == '\"' and quote == '\'':
+            doing += '\"'
+            continue
         if c == '\"' and not quote and not doing:
             quote = '\"'
             continue
