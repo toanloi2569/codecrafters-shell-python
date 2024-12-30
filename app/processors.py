@@ -3,19 +3,18 @@ import sys
 import abc
 import os
 import typing
+from abc import abstractmethod
 from typing import Text, List
 
 paths = os.environ.get("PATH").split(":")
 home = os.environ.get("HOME")
 
 
-def split_quoting(text: str):
+def split_text(text: str):
     def handle_backslash(c: str, quote: str):
         # Return character after backslash
         if quote == '\"' and c in ['\\', '\"', '$']:
             return c
-        # if quote == '\'' and c == '\\':
-        #     return c
         if not quote:
             return c
         return '\\' + c
@@ -91,6 +90,7 @@ class Processor(abc.ABC):
     def process(self, command):
         pass
 
+
 class BuiltinProcessor(Processor):
     @abc.abstractmethod
     def process(self, command):
@@ -106,9 +106,9 @@ class EchoProcessor(BuiltinProcessor):
 
     def process(self, command):
         content = command[5:]
-        text = split_quoting(content)
+        text = split_text(content)
         text = ''.join(text)
-        print(text)
+        return text
 
 
 class TypeProcessor(BuiltinProcessor):
@@ -119,12 +119,10 @@ class TypeProcessor(BuiltinProcessor):
         content = command[5:]
 
         if content in shell_builtins:
-            print(command[5:] + " is a shell builtin")
-            return
+            return command[5:] + " is a shell builtin"
 
         if is_external_command(content):
-            print(f"{content} is {is_external_command(content)}")
-            return
+            return f"{content} is {is_external_command(content)}"
 
         print(f"{content}: not found")
 
@@ -133,7 +131,7 @@ class PwdProcessor(BuiltinProcessor):
         return "pwd"
 
     def process(self, command):
-        print(os.getcwd())
+        return os.getcwd()
 
 class CdProcessor(BuiltinProcessor):
     def builtin_command(self):
@@ -145,7 +143,7 @@ class CdProcessor(BuiltinProcessor):
         elif os.path.isdir(command[3:]):
             os.chdir(command[3:])
         else:
-            print(f"cd: {command[3:]}: No such file or directory")
+            return f"cd: {command[3:]}: No such file or directory"
 
 class CatProcessor(BuiltinProcessor):
     def builtin_command(self):
@@ -154,29 +152,29 @@ class CatProcessor(BuiltinProcessor):
     def process(self, command):
         content = command[4:]
 
-        files = split_quoting(content)
+        files = split_text(content)
         files = [file for file in files if os.path.isfile(file)]
         out = ''
         for file_name in files:
             with open(file_name, 'r') as f:
                 out += f.read()
 
-        print(out.strip())
+        return out.strip()
 
 class CustomCatProcessor(BuiltinProcessor):
     def builtin_command(self):
         return "cat"
 
     def process(self, command):
-        parts = split_quoting(command)
-        files = split_quoting(parts[1:])
+        parts = split_text(command)
+        files = split_text(parts[1:])
         files = [file for file in files if os.path.isfile(file)]
         out = ''
         for file_name in files:
             with open(file_name, 'r') as f:
                 out += f.read()
 
-        print(out.strip())
+        return out.strip()
 
 class ExitProcessor(BuiltinProcessor):
     def builtin_command(self):
@@ -195,6 +193,40 @@ class ExternalCommandProcessor(Processor):
     def process(self, command):
         os.system(command)
 
+class RedirectionProcessor(Processor):
+    @abstractmethod
+    def process(self, command):
+        pass
+
+    @abstractmethod
+    def write(self, content, file_path):
+        pass
+
+class RedirectionStdOutProcessor(RedirectionProcessor):
+    def process(self, command):
+        return process_command(command)
+
+    def write(self, content, file_path):
+        if os.path.isfile(file_path):
+            with open(file_path, 'w') as f:
+                f.write(content)
+
+
+def process_command(command):
+    parts = split_text(command)
+    cmd = parts[0]
+    if cmd in builtin_processor_mapper:
+        processor = builtin_processor_mapper[cmd]
+        return processor.process(command)
+    elif is_external_command(cmd):
+        processor = ExternalCommandProcessor()
+        return processor.process(command)
+    else:
+        parts = split_text(command)
+        if len(parts) == 1:
+            return f"{command}: command not found"
+        else:
+            return CustomCatProcessor().process(command)
 
 shell_builtins = ["echo", "type", "exit", "pwd", "cd"]
 builtin_processor_mapper = {
