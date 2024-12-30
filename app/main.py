@@ -1,7 +1,7 @@
 import os
 import sys
 
-from app.processors import builtin_processor_mapper, ExternalCommandProcessor, is_external_command
+from app.processors import builtin_processor_mapper, ExternalCommandProcessor, is_external_command, split_quoting, CustomCatProcessor
 
 
 def main():
@@ -20,7 +20,12 @@ def main():
             processor = ExternalCommandProcessor()
             processor.process(command)
         else:
-            print(f"{command}: command not found")
+            parts = split_quoting(command)
+            if len(parts) == 1:
+                print(f"{command}: command not found")
+                continue
+            else:
+                CustomCatProcessor().process(command)
 
 
 if __name__ == "__main__":

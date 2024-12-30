@@ -10,114 +10,81 @@ home = os.environ.get("HOME")
 
 
 def split_quoting(text: str):
-    # Completed text list
-    done: list = []
+    def handle_backslash(c: str, quote: str):
+        # Return character after backslash
+        if quote == '\"' and c in ['\\', '\"', '$']:
+            return c
+        # if quote == '\'' and c == '\\':
+        #     return c
+        if not quote:
+            return c
+        return '\\' + c
 
-    # Processing str
-    doing: str = ''
+    def handle_quote(c: str, quote: str, doing: str):
+        # Return quote, doing, is_closing
+        if quote == c:  # Closing quote
+            return '', doing, True
+        elif not quote:  # Opening quote
+            return c, doing, False
+        else:  # Inside a different quote
+            return quote, doing + c, False
 
-    # Quote is being processed
-    quote: str = ''
+    def handle_space(doing: str, quote: str, done: list):
+        # Return doing, done
+        if quote:
+            return doing + ' ', done
+        if doing:
+            done.append(doing)
+            done.append(' ')
+            return '', done
 
-    # Is backslash being used?
-    backslash: bool = False
+        done.append(' ')
+        return '', done
+
+    def finalize_token(doing: str, quote: str):
+        if quote:
+            raise ValueError("Unclosed quote")
+        return doing
+
+
+    done: list = []             # Completed text list
+    doing: str = ''             # Processing string
+    quote: str = ''             # Quote is being processed
+    backslash: bool = False    # Backslash is being processed
 
     for i, c in enumerate(text):
-        if c == ' ' and backslash:
-            doing += ' '
+        if backslash:
+            doing += handle_backslash(c, quote)
             backslash = False
             continue
-        if c == ' ' and not doing:
-            done.append(' ')
-            continue
-        if c == ' ' and doing and not quote:
-            done.append(doing)
-            done.append(' ')
-            doing = ''
-            continue
-        if c == ' ' and doing and quote:
-            doing += ' '
-            continue
 
-        if c == '\'' and backslash:
-            doing += '\''
-            backslash = False
-            continue
-        if c == '\'' and quote == '\'':
-            quote = ''
-            done.append(doing)
-            doing = ''
-            continue
-        if c == '\'' and quote == '\"':
-            doing += '\''
-            continue
-        if c == '\'' and not quote and not doing:
-            quote = '\''
-            continue
-
-        if c == '\"' and backslash:
-            doing += '\"'
-            backslash = False
-            continue
-        if c == '\"' and quote == '\"' and not backslash:
-            quote = ''
-            done.append(doing)
-            doing = ''
-            continue
-        if c == '\"' and quote == '\"' and backslash:
-            doing += '\"'
-            continue
-        if c == '\"' and quote == '\'':
-            doing += '\"'
-            continue
-        if c == '\"' and not quote and not doing:
-            quote = '\"'
-            continue
-
-        # Tương tác giữa dấu nháy kép (") và dấu backslash (\)
-        #       Dấu nháy kép bảo toàn hầu hết các ký tự bên trong nó, ngoại trừ:
-        #           Ký tự " (phải đóng dấu trích dẫn).
-        #           Ký tự $ (biến thay thế).
-        #           Ký tự \ (có ngữ cảnh đặc biệt).
-        #       Khi dấu \ được sử dụng trong dấu ", nó sẽ kiểm tra xem ký tự tiếp theo có phải 1 trong 3 ký tự sau không: \, ", $
-        #       Nếu có, ký tự \ sẽ được hiểu là ký tự escape và sẽ in ra ký tự tiếp theo
-        #       Nếu không, ký tự \ sẽ được hiểu là ký tự bình thường và sẽ in ra ký tự \ đó
-        # Tương tác giữa dấu nháy đơn (') và dấu backslash (\)
-        #       Dấu nháy đơn bảo toàn tất cả các ký tự bên trong nó, ngoại trừ ký tự ' (phải đóng dấu trích dẫn).
-        #       Khi dấu \ được sử dụng trong dấu ', nó sẽ được in ra như là ký tự bình thường
-        if c == '\\' and quote == '\"' and  i+1 < len(text) and text[i+1] in ['\\', '\"', '$'] and not backslash:
+        if c == '\\':
             backslash = True
             continue
-        if c == '\\' and backslash:
-            doing += '\\'
-            backslash = False
-            continue
-        if c == '\\' and not quote:
-            backslash = True
-            continue
-        if c == '\\' and quote:
-            doing += '\\'
+
+        if c in ['\'', '\"']:
+            quote, doing, is_closing = handle_quote(c, quote, doing)
+            if is_closing:
+                done.append(doing)
+                doing = ''
             continue
 
-        if c != ' ' and c != '\'' and c != '\"':
-            doing += c
+        if c == ' ':
+            doing, done = handle_space(doing, quote, done)
             continue
 
-        raise ValueError
+        doing += c
 
     if doing:
-        if ((doing.startswith('\'') and not doing.endswith('\''))
-                or (doing.startswith('\"') and not doing.endswith('\"'))):
-            raise ValueError
-        done.append(doing)
+        done.append(finalize_token(doing, quote))
 
     excess_space_idx = []
     for i, s in enumerate(done):
         if s == ' ' and i + 1 < len(done) and done[i+1] == ' ':
             excess_space_idx.append(i)
     done = [ s for i, s in enumerate(done) if i not in excess_space_idx ]
-
     return done
+
 
 class Processor(abc.ABC):
     @abc.abstractmethod
@@ -140,7 +107,6 @@ class EchoProcessor(BuiltinProcessor):
     def process(self, command):
         content = command[5:]
         text = split_quoting(content)
-        # text = [p[1:-1] if p.startswith('\'') or p.startswith('\"') else p for p in text ]
         text = ''.join(text)
         print(text)
 
@@ -189,6 +155,21 @@ class CatProcessor(BuiltinProcessor):
         content = command[4:]
 
         files = split_quoting(content)
+        files = [file for file in files if os.path.isfile(file)]
+        out = ''
+        for file_name in files:
+            with open(file_name, 'r') as f:
+                out += f.read()
+
+        print(out.strip())
+
+class CustomCatProcessor(BuiltinProcessor):
+    def builtin_command(self):
+        return "cat"
+
+    def process(self, command):
+        parts = split_quoting(command)
+        files = split_quoting(parts[1:])
         files = [file for file in files if os.path.isfile(file)]
         out = ''
         for file_name in files:
