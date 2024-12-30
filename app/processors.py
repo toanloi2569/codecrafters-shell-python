@@ -208,27 +208,22 @@ class ExternalCommandProcessor(Processor):
         return result.stdout.decode(), ''
 
 
-class RedirectionProcessor(Processor):
-    @abstractmethod
-    def process(self, command):
-        pass
+def find_redirect_idx(parts):
+    if '>' in parts:
+        return parts.index('>'), '>'
+    if '1>' in parts:
+        return parts.index('1>'), '1>'
+    if '2>' in parts:
+        return parts.index('2>'), '2>'
+    return -1, None
 
-    @abstractmethod
-    def write(self, content, file_path):
-        pass
-
-class RedirectionStdOutProcessor(RedirectionProcessor):
-    def process(self, command):
-        result, err = process_command(command)
-        return result, err
-
-    def write(self, content, file_path):
-        if os.path.isfile(file_path):
-            with open(file_path, 'w') as f:
-                f.write(content)
-        else:
-            with open(file_path, 'x') as f:
-                f.write(content)
+def write_file(content, file_path):
+    if os.path.isfile(file_path):
+        with open(file_path, 'w') as f:
+            f.write(content)
+    else:
+        with open(file_path, 'x') as f:
+            f.write(content)
 
 
 def process_command(command):

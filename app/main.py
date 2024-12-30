@@ -1,7 +1,7 @@
 import os
 import sys
 
-from app.processors import split_text, process_command, RedirectionStdOutProcessor
+from app.processors import split_text, process_command, find_redirect_idx, write_file
 
 
 def main():
@@ -12,22 +12,21 @@ def main():
         command = input("$ ")
 
         parts = split_text(command)
-        if '>' in parts:
-            idx = parts.index('>')
-            parts[idx] = '1>'
-
-        if '1>' in parts:
-            idx = parts.index('1>')
-
-            command = ''.join(parts[:idx])
-            file_name = ''.join(parts[idx+1:])
+        redirect_idx, opr = find_redirect_idx(parts)
+        if redirect_idx != -1:
+            command = ''.join(parts[:redirect_idx])
+            file_name = ''.join(parts[redirect_idx+1:])
             file_name = file_name.strip()
 
-            redirect_std_out = RedirectionStdOutProcessor()
-            result, err = redirect_std_out.process(command)
-            if err:
-                sys.stderr.write(err + '\n')
-            redirect_std_out.write(result, file_name)
+            result, err = process_command(command)
+            if opr == '>' or opr == '1>':
+                if err:
+                    sys.stderr.write(err + '\n')
+                write_file(result, file_name)
+            elif opr == '2>':
+                if result:
+                    sys.stdout.write(result + '\n')
+                write_file(err, file_name)
         else:
             result, err = process_command(command)
             if err:
