@@ -1,5 +1,4 @@
 import readline
-import os
 import sys
 
 from app.processors import split_text, process_command, find_redirect_idx, write_file, builtin_processor_mapper, external_commands
@@ -7,10 +6,24 @@ from app.processors import split_text, process_command, find_redirect_idx, write
 def auto_complete(text, state):
     options = [i + ' ' for i in builtin_processor_mapper.keys() if i.startswith(text)]
     options += [i + ' ' for i in external_commands if i.startswith(text)]
-    return options[state] if state < len(options) else None
+
+    try:
+        return options[state]
+    except IndexError:
+        return None
+
+def display_matches(substitution, matches, longest_match_length):
+    if len(matches) > 1:
+        sys.stdout.write('\n')
+        sys.stdout.write(' '.join(matches).strip() + '\n')
+        sys.stdout.write('$ ' + substitution)
+    elif len(matches) == 1:
+        readline.insert_text(matches[0])
+        readline.redisplay()
 
 readline.parse_and_bind("tab: complete")
 readline.set_completer(auto_complete)
+readline.set_completion_display_matches_hook(display_matches)
 
 
 def main():

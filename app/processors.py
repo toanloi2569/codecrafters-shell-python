@@ -122,8 +122,8 @@ class TypeProcessor(BuiltinProcessor):
         if content in shell_builtins:
             return command[5:] + " is a shell builtin", ''
 
-        if is_external_command(content):
-            return f"{content} is {get_path_external_command(content)}", ''
+        if ExternalCommandProcessor.is_external_command(content):
+            return f"{content} is {ExternalCommandProcessor.get_path_external_command(content)}", ''
 
         return f"{content}: not found", ''
 
@@ -195,14 +195,6 @@ class CustomCatProcessor(BuiltinProcessor):
         return out.strip(), err.strip()
 
 
-def is_external_command(command):
-    return command if command in external_commands else None
-
-def get_path_external_command(command):
-    for path in paths:
-        if os.path.isfile(f"{path}/{command}"):
-            return f"{path}/{command}"
-    return None
 
 class ExternalCommandProcessor(Processor):
     def process(self, command):
@@ -210,6 +202,17 @@ class ExternalCommandProcessor(Processor):
         if result.stderr:
             return '', result.stderr.decode()
         return result.stdout.decode(), ''
+
+    @staticmethod
+    def is_external_command(command):
+        return command if command in external_commands else None
+
+    @staticmethod
+    def get_path_external_command(command):
+        for path in paths:
+            if os.path.isfile(f"{path}/{command}"):
+                return f"{path}/{command}"
+        return None
 
 
 def find_redirect_idx(parts):
@@ -243,7 +246,7 @@ def process_command(command):
         processor = builtin_processor_mapper[cmd]
         result, err = processor.process(command)
         return result, err
-    elif is_external_command(cmd):
+    elif ExternalCommandProcessor.is_external_command(cmd):
         processor = ExternalCommandProcessor()
         result, err = processor.process(command)
         return result, err
