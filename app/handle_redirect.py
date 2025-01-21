@@ -33,4 +33,10 @@ def handle_redirect(file_name, opr, result, err):
         '2>>': lambda: write_file('\n' + err, file_name, mode='a')
     }
 
+    if opr in ('>', '1>', '>>', '1>>') and err:
+        sys.stderr.write(err + '\n')
+
+    if opr in ('2>', '2>>') and result:
+        sys.stdout.write(result + '\n')
+
     redirect_handlers[opr]()
