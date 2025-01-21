@@ -123,7 +123,7 @@ class TypeProcessor(BuiltinProcessor):
             return command[5:] + " is a shell builtin", ''
 
         if is_external_command(content):
-            return f"{content} is {is_external_command(content)}", ''
+            return f"{content} is {get_path_external_command(content)}", ''
 
         return f"{content}: not found", ''
 
@@ -196,9 +196,13 @@ class CustomCatProcessor(BuiltinProcessor):
 
 
 def is_external_command(command):
+    return command if command in external_commands else None
+
+def get_path_external_command(command):
     for path in paths:
         if os.path.isfile(f"{path}/{command}"):
             return f"{path}/{command}"
+    return None
 
 class ExternalCommandProcessor(Processor):
     def process(self, command):
@@ -262,3 +266,7 @@ builtin_processor_mapper = {
     "cd": CdProcessor(),
     "cat": CatProcessor(),
 }
+external_commands = [
+    f for path in paths if os.path.isdir(path)
+    for f in os.listdir(path) if os.path.isfile(f"{path}/{f}")
+]
