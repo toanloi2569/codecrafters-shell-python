@@ -1,7 +1,15 @@
+import readline
 import os
 import sys
 
-from app.processors import split_text, process_command, find_redirect_idx, write_file
+from app.processors import split_text, process_command, find_redirect_idx, write_file, builtin_processor_mapper
+
+def auto_complete(text, state):
+    options = [i + ' ' for i in builtin_processor_mapper.keys() if i.startswith(text)]
+    return options[state] if state < len(options) else None
+
+readline.parse_and_bind("tab: complete")
+readline.set_completer(auto_complete)
 
 
 def main():
