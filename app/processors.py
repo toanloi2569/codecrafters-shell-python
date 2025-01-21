@@ -215,30 +215,6 @@ class ExternalCommandProcessor(Processor):
         return None
 
 
-def find_redirect_idx(parts):
-    if '>' in parts:
-        return parts.index('>'), '>'
-    if '1>' in parts:
-        return parts.index('1>'), '1>'
-    if '2>' in parts:
-        return parts.index('2>'), '2>'
-    if '>>' in parts:
-        return parts.index('>>'), '>>'
-    if '1>>' in parts:
-        return parts.index('1>>'), '1>>'
-    if '2>>' in parts:
-        return parts.index('2>>'), '2>>'
-    return -1, None
-
-def write_file(content, file_path, mode='w'):
-    if os.path.isfile(file_path):
-        with open(file_path, mode) as f:
-            f.write(content)
-    else:
-        with open(file_path, 'x') as f:
-            f.write(content.strip())
-
-
 def process_command(command):
     parts = split_text(command)
     cmd = parts[0]
